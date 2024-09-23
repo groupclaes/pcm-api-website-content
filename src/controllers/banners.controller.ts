@@ -4,6 +4,10 @@ import Banner from '../models/banner.repository'
 import { groupBy } from '../tools/groupBy'
 
 declare module 'fastify' {
+  export interface FastifyInstance {
+    getSqlPool: (name?: string) => Promise<sql.ConnectionPool>
+  }
+
   export interface FastifyRequest {
     jwt: JWTPayload
     hasRole: (role: string) => boolean
@@ -30,7 +34,8 @@ export default async function (fastify: FastifyInstance) {
     const start = performance.now()
 
     try {
-      const repo = new Banner(request.log)
+      const pool = await fastify.getSqlPool()
+      const repo = new Banner(request.log, pool)
       const banners = await repo.get(request.params.company, request.params.page)
 
       if (banners && banners.length > 0) {

@@ -1,26 +1,20 @@
 import Fastify from '@groupclaes/fastify-elastic'
 import { FastifyInstance } from 'fastify'
-import process, { env } from 'process'
+import { env } from 'process'
 
-import config from './config'
 import bannersController from './controllers/banners.controller'
 
-let fastify: FastifyInstance | undefined
+const LOGLEVEL = 'debug'
 
-/** Main loop */
-async function main() {
+export default async function (config: any): Promise<FastifyInstance | undefined> {
+  if (!config || !config.wrapper) return
+
   // add jwt configuration object to config
-  fastify = await Fastify({ ...config.wrapper })
-  const version_prefix = (env.APP_VERSION ? '/' + env.APP_VERSION : '')
-  await fastify.register(bannersController, { prefix: `${version_prefix}/${config.wrapper.serviceName}`, logLevel: 'info' })
+  const fastify = await Fastify({ ...config.wrapper })
+  const version_prefix = env.APP_VERSION ? '/' + env.APP_VERSION : ''
+  fastify.log.level = LOGLEVEL
+  await fastify.register(bannersController, { prefix: `${version_prefix}/${config.wrapper.serviceName}`, logLevel: LOGLEVEL })
   await fastify.listen({ port: +(env['PORT'] ?? 80), host: '::' })
+
+  return fastify
 }
-
-['SIGTERM', 'SIGINT'].forEach(signal => {
-  process.on(signal, async () => {
-    await fastify?.close()
-    process.exit(0)
-  })
-})
-
-main()
